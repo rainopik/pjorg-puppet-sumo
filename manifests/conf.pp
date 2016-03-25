@@ -50,7 +50,6 @@ define sumo::conf (
     group   => 'root',
     mode    => '0600',
     content => template("${module_name}/sumo.conf.erb"),
-    require => Class['sumo::install'],
     notify  => Class['sumo::service'],
   }
 }

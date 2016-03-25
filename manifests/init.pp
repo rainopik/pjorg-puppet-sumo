@@ -24,13 +24,13 @@
 #   the same name.
 #
 # [*collectorName*]
-#   The name of the collector. Defaults to the hostname. 
+#   The name of the collector. Defaults to the hostname.
 #
 # [*email*]
 #   Specify the email address of the account to use to authenticate to the
-#   Sumo Logic service. If you use this parameter, you must also pass a 
+#   Sumo Logic service. If you use this parameter, you must also pass a
 #   password, and you must NOT pass accessid or accesskey.
-# 
+#
 # [*ephemeral*]
 #   A boolean indicating whether the collector should be deleted automatically
 #   after being offline for 12 hours.
@@ -68,18 +68,28 @@
 #   the module sets this to a directory and uses this directory to pass source
 #   configurations to the collector.
 #
+# [*sumo_download_installer*]
+#   If true, download and use the installer from Sumo Logic instead of relying on Package Mananeger
+#
+# [*sumo_install_dir*]
+#   Installation directory for Sumo Logic collector. Defaults to /opt/SumoCollector
+#
+# [*sumo_installer_dir*]
+#   Directory to use when downloading Sumo Logic installer script. Defaults to /tmp
+#
+#
 # === Examples
 #
 # A basic example, using username/password and without any sources:
-# 
+#
 # class sumo {
 #   email    => 'user@example.com',
-#   password => 'usersPassword123!', 
+#   password => 'usersPassword123!',
 # }
 #
 #
 # A more advanced example, using a Sumo accessid and with a local file source:
-# 
+#
 # class sumo {
 #   accessid  => 'SumoAccessId',
 #   accesskey => 'SumoAccessKey_123ABC/&!',
@@ -90,6 +100,14 @@
 # }
 #
 #
+# Example of using the downloaded installer
+#
+# class sumo {
+#   accessid  => 'SumoAccessId',
+#   accesskey => 'SumoAccessKey_123ABC/&!',
+#   sumo_download_installer  => true,
+# }
+#
 # === Authors
 #
 # Peter D. Jorgensen <pdjorgensen@gmail.com>
@@ -99,21 +117,40 @@
 # Copyright 2016 Peter D. Jorgensen, unless otherwise noted.
 #
 class sumo (
-  $accessid = $::sumo::params::accessid,
-  $accesskey = $::sumo::params::accesskey,
-  $clobber = $::sumo::params::clobber,
-  $collectorName = $::sumo::params::collectorName,
-  $email = $::sumo::params::email,
-  $ephemeral = $::sumo::params::ephemeral,
-  $override = $::sumo::params::override,
-  $password = $::sumo::params::password,
-  $proxyHost = $::sumo::params::proxyHost,
-  $proxyNtlmDomain = $::sumo::params::proxyNtlmDomain,
-  $proxyPassword = $::sumo::params::proxyPassword,
-  $proxyPort = $::sumo::params::proxyPort,
-  $proxyUser = $::sumo::params::proxyUser,
-  $sources = $::sumo::params::sources,
-  $syncSources = $::sumo::params::syncSources,
+  $accessid                 = $::sumo::params::accessid,
+  $accesskey                = $::sumo::params::accesskey,
+  $clobber                  = $::sumo::params::clobber,
+  $collectorName            = $::sumo::params::collectorName,
+  $email                    = $::sumo::params::email,
+  $ephemeral                = $::sumo::params::ephemeral,
+  $override                 = $::sumo::params::override,
+  $password                 = $::sumo::params::password,
+  $proxyHost                = $::sumo::params::proxyHost,
+  $proxyNtlmDomain          = $::sumo::params::proxyNtlmDomain,
+  $proxyPassword            = $::sumo::params::proxyPassword,
+  $proxyPort                = $::sumo::params::proxyPort,
+  $proxyUser                = $::sumo::params::proxyUser,
+  $sources                  = $::sumo::params::sources,
+  $syncSources              = $::sumo::params::syncSources,
+
+  $sumo_download_installer  = $::sumo::params::sumo_download_installer,
+  $sumo_install_dir         = $::sumo::params::sumo_install_dir,
+  $sumo_installer_dir       = $::sumo::params::sumo_installer_dir,
+
 ) inherits sumo::params {
-  include sumo::params, sumo::install, sumo::config, sumo::service
+
+  include sumo::params
+
+  contain sumo::install, sumo::config, sumo::service
+
+  # Make sure that configuration files are present before running the installer
+  Class['sumo::config'] -> Class['sumo::install'] -> Class['sumo::service']
+
+
+  Sumo::Localfilesource <| |> -> Class['sumo::install']
+
+  Sumo::Remotefilesource <| |> -> Class['sumo::install']
+
+  Sumo::Syslogsource <| |> -> Class['sumo::install']
+
 }
